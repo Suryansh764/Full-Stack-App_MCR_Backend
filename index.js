@@ -1,0 +1,155 @@
+const express = require("express");
+const mongoose = require("mongoose");
+const cors = require("cors");
+require("dotenv").config();
+
+const { initializeDatabase } = require("./db/db.connect")
+
+const Job = require("./models/job.models");
+const app = express();
+app.use(express.json());
+
+const allowedOrigins = [
+  "http://localhost:5173",
+
+];
+
+app.use(cors({
+  origin: function (origin, callback) {
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error("Not allowed by CORS"));
+    }
+  },
+  credentials: true
+}));
+
+initializeDatabase()
+  .then(() => console.log("Database connected successfully"))
+  .catch(err => {
+    console.error("Database connection failed", err);
+    process.exit(1);
+  });
+
+
+app.get("/", (req, res) => {
+  res.send("Job Portal Backend is running");
+});
+
+app.post("/api/jobs", async(req, res) => {
+    try{
+        const {
+            jobTitle, company, location, salary, jobType, description, jobQualifications
+        } = req.body;
+        if (!jobTitle || !company || !location || !salary || !jobType || !description || !jobQualifications){
+            return res.status(400).json({ message: "Missing required fields (jobTitle, company, location, salary, jobType, description, jobQualifications)" });
+        }
+         const newJob = new Job({
+      jobTitle, company, location, salary, jobType, description, jobQualifications
+    });
+    const savedJob = await newJob.save();
+    res.status(201).json({ message: "Job created successfully", product: savedJob });
+
+    }
+    catch (error) {
+    console.error("Error creating product:", error);
+    res.status(500).json({ message: "Failed to create job", error: error.message });
+  }
+})
+
+app.get("/api/jobs", async (req, res) => {
+  try {
+    const search = req.query.search || "";
+
+    const jobs = await Job.find({
+      jobTitle: { $regex: search, $options: "i" },
+    }).sort({ createdAt: -1 });
+
+    res.status(200).json({
+      success: true,
+      count: jobs.length,
+      data: jobs,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Server Error: Unable to fetch jobs",
+      error: error.message,
+    });
+  }
+});
+
+app.get("/api/jobs/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    // Validate if id is a valid MongoDB ObjectId
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid job ID format",
+      });
+    }
+
+    const job = await Job.findById(id);
+
+    if (!job) {
+      return res.status(404).json({
+        success: false,
+        message: "Job not found",
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      data: job,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Server Error: Unable to fetch job details",
+      error: error.message,
+    });
+  }
+});
+
+app.delete("/api/jobs/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid job ID format",
+      });
+    }
+
+    const deletedJob = await Job.findByIdAndDelete(id);
+
+    if (!deletedJob) {
+      return res.status(404).json({
+        success: false,
+        message: "Job not found",
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: "Job deleted successfully",
+      data: deletedJob,
+    });
+  } catch (error) {
+    console.error("Error deleting job:", error);
+    res.status(500).json({
+      success: false,
+      message: "Server Error: Unable to delete job",
+      error: error.message,
+    });
+  }
+});
+
+const PORT = 4000;
+app.listen(PORT, () => {
+    console.log(`Server is running on the port ${PORT}`)
+})

@@ -11,6 +11,7 @@ app.use(express.json());
 
 const allowedOrigins = [
   "http://localhost:5173",
+  "https://full-stack-app-mcr-frontend.vercel.app/"
 
 ];
 

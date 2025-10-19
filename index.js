@@ -3,16 +3,18 @@ const mongoose = require("mongoose");
 const cors = require("cors");
 require("dotenv").config();
 
-const { initializeDatabase } = require("./db/db.connect")
-
+const { initializeDatabase } = require("./db/db.connect");
 const Job = require("./models/job.models");
+
 const app = express();
 app.use(express.json());
 
 const allowedOrigins = [
   "http://localhost:5173",
-  "https://full-stack-app-mcr-frontend.vercel.app/"
-
+  "http://localhost:3000",
+  "http://localhost:3001",
+  "http://localhost:5174",
+  "https://full-stack-app-mcr-frontend.vercel.app",
 ];
 
 app.use(cors({
@@ -33,32 +35,59 @@ initializeDatabase()
     process.exit(1);
   });
 
-
+// Test endpoint
 app.get("/", (req, res) => {
   res.send("Job Portal Backend is running");
 });
 
-app.post("/api/jobs", async(req, res) => {
-    try{
-        const {
-            jobTitle, company, location, salary, jobType, description, jobQualifications
-        } = req.body;
-        if (!jobTitle || !company || !location || !salary || !jobType || !description || !jobQualifications){
-            return res.status(400).json({ message: "Missing required fields (jobTitle, company, location, salary, jobType, description, jobQualifications)" });
-        }
-         const newJob = new Job({
+// POST: Create a new job
+app.post("/api/jobs", async (req, res) => {
+  try {
+    const {
       jobTitle, company, location, salary, jobType, description, jobQualifications
-    });
-    const savedJob = await newJob.save();
-    res.status(201).json({ message: "Job created successfully", product: savedJob });
+    } = req.body;
 
+    if (!jobTitle || !company || !location || !salary || !jobType || !description || !jobQualifications) {
+      return res.status(400).json({ 
+        message: "Missing required fields (jobTitle, company, location, salary, jobType, description, jobQualifications)" 
+      });
     }
-    catch (error) {
-    console.error("Error creating product:", error);
-    res.status(500).json({ message: "Failed to create job", error: error.message });
-  }
-})
 
+    // Ensure qualifications is an array
+    const qualificationsArray = Array.isArray(jobQualifications) 
+      ? jobQualifications 
+      : jobQualifications.split("\n").filter(q => q.trim());
+
+    const newJob = new Job({
+      jobTitle, 
+      company, 
+      location, 
+      salary: Number(salary), 
+      jobType, 
+      description, 
+      jobQualifications: qualificationsArray
+    });
+
+    const savedJob = await newJob.save();
+    res.status(201).json({ 
+      success: true,
+      message: "Job created successfully", 
+      data: savedJob 
+    });
+
+  } catch (error) {
+    console.error("Error creating job:", error);
+    console.error("Full error details:", error.stack);
+    res.status(500).json({ 
+      success: false,
+      message: "Failed to create job", 
+      error: error.message,
+      details: error.errors || error.stack
+    });
+  }
+});
+
+// GET: Fetch all jobs with optional search
 app.get("/api/jobs", async (req, res) => {
   try {
     const search = req.query.search || "";
@@ -81,10 +110,11 @@ app.get("/api/jobs", async (req, res) => {
   }
 });
 
+// GET: Fetch a single job by ID
 app.get("/api/jobs/:id", async (req, res) => {
   try {
     const { id } = req.params;
-    
+
     // Validate if id is a valid MongoDB ObjectId
     if (!mongoose.Types.ObjectId.isValid(id)) {
       return res.status(400).json({
@@ -107,6 +137,7 @@ app.get("/api/jobs/:id", async (req, res) => {
       data: job,
     });
   } catch (error) {
+    console.error("Error fetching job details:", error);
     res.status(500).json({
       success: false,
       message: "Server Error: Unable to fetch job details",
@@ -115,6 +146,7 @@ app.get("/api/jobs/:id", async (req, res) => {
   }
 });
 
+// DELETE: Delete a job by ID (placeholder for now)
 app.delete("/api/jobs/:id", async (req, res) => {
   try {
     const { id } = req.params;
@@ -150,7 +182,7 @@ app.delete("/api/jobs/:id", async (req, res) => {
   }
 });
 
-const PORT = 4000;
+const PORT = process.env.PORT || 4000;
 app.listen(PORT, () => {
-    console.log(`Server is running on the port ${PORT}`)
-})
+  console.log(`Server is running on port ${PORT}`);
+});

@@ -90,18 +90,23 @@ app.post("/api/jobs", async (req, res) => {
 // GET: Fetch all jobs with optional search
 app.get("/api/jobs", async (req, res) => {
   try {
+    console.log("Fetching all jobs...");
     const search = req.query.search || "";
 
     const jobs = await Job.find({
       jobTitle: { $regex: search, $options: "i" },
     }).sort({ createdAt: -1 });
 
+    console.log(`Found ${jobs.length} jobs`);
     res.status(200).json({
       success: true,
       count: jobs.length,
       data: jobs,
     });
   } catch (error) {
+    console.error("Error fetching jobs:", error);
+    console.error("Error message:", error.message);
+    console.error("Error stack:", error.stack);
     res.status(500).json({
       success: false,
       message: "Server Error: Unable to fetch jobs",

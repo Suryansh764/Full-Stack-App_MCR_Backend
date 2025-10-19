@@ -35,12 +35,12 @@ initializeDatabase()
     process.exit(1);
   });
 
-// Test endpoint
+
 app.get("/", (req, res) => {
   res.send("Job Portal Backend is running");
 });
 
-// POST: Create a new job
+
 app.post("/api/jobs", async (req, res) => {
   try {
     const {
@@ -53,7 +53,7 @@ app.post("/api/jobs", async (req, res) => {
       });
     }
 
-    // Ensure qualifications is an array
+
     const qualificationsArray = Array.isArray(jobQualifications) 
       ? jobQualifications 
       : jobQualifications.split("\n").filter(q => q.trim());
@@ -87,7 +87,7 @@ app.post("/api/jobs", async (req, res) => {
   }
 });
 
-// GET: Fetch all jobs with optional search
+
 app.get("/api/jobs", async (req, res) => {
   try {
     console.log("Fetching all jobs...");
@@ -115,12 +115,12 @@ app.get("/api/jobs", async (req, res) => {
   }
 });
 
-// GET: Fetch a single job by ID
+
 app.get("/api/jobs/:id", async (req, res) => {
   try {
     const { id } = req.params;
 
-    // Validate if id is a valid MongoDB ObjectId
+
     if (!mongoose.Types.ObjectId.isValid(id)) {
       return res.status(400).json({
         success: false,
@@ -151,7 +151,7 @@ app.get("/api/jobs/:id", async (req, res) => {
   }
 });
 
-// DELETE: Delete a job by ID (placeholder for now)
+
 app.delete("/api/jobs/:id", async (req, res) => {
   try {
     const { id } = req.params;
